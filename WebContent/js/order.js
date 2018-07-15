@@ -3,7 +3,7 @@ $(function() {
 			var w = window.innerWidth || document.documentElement.clientWidth
 					|| document.body.clientWidth;
 			$("body").width(w);
-
+			//提交信息
 			$("#dept").change(function(){
 				var val=$(this).val();
 				//發送AJAX請求到服務端
