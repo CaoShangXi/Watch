@@ -1,0 +1,1 @@
+select * from (select s.*,rownum rn from SFS.DSMS_LINESTATUS s)d where d.rn between 79437 and 79447;

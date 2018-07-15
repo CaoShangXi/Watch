@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.aten.dao.OrderDao">
+<select id="findAll" parameterType="com.aten.entity.WorkOrder" resultMap="orderMap">
+	select * from `work_order`
+	<where>
+		<if test="work_number!=null&amp;&amp;work_number.length()>0">
+			and work_number=#{work_number}
+		</if>
+		<if test="product_number!=null&amp;&amp;product_number.length()>0">
+			and product_number=#{product_number}
+		</if>
+		<if test="start_date!=null">
+			and start_date&gt;=#{start_date}
+		</if>
+		<if test="end_date!=null">
+			and end_date&lt;=#{end_date}
+		</if>
+	</where>
+	order by id limit 20
+</select>
+<resultMap type="com.aten.entity.WorkOrder" id="orderMap">
+<!--property:實體類的屬性,column:數據庫的字段名,jdbcType:對應數據庫的字段的類型,javaType:Java類屬性的類型  -->
+<result property="id" column="id" jdbcType="INTEGER" javaType="int"/>
+<result property="machining_center" column="machining_center" jdbcType="VARCHAR" javaType="string"/>
+<result property="work_number" column="work_number" jdbcType="VARCHAR" javaType="string"/>
+<result property="product_number" column="product_number" jdbcType="VARCHAR" javaType="string"/>
+<result property="start_date" column="start_date" jdbcType="DATE" javaType="java.sql.Date"/>
+<result property="end_date" column="end_date" jdbcType="DATE" javaType="java.sql.Date"/>
+<result property="total" column="total" jdbcType="INTEGER" javaType="int"/>
+<result property="produced" column="produced" jdbcType="INTEGER" javaType="int"/>
+<result property="maintain_total" column="maintain_total" jdbcType="INTEGER" javaType="int"/>
+<result property="maintain" column="maintain" jdbcType="INTEGER" javaType="int"/>
+<result property="work_hours" column="work_hours" jdbcType="INTEGER" javaType="int"/>
+<result property="QM_receipts" column="QM_receipts" jdbcType="VARCHAR" javaType="string"/>
+<result property="efficiency" column="efficiency" jdbcType="VARCHAR" javaType="string"/>
+<result property="assemblage" column="assemblage" jdbcType="INTEGER" javaType="int"/>
+<result property="test" column="test" jdbcType="INTEGER" javaType="int"/>
+<result property="packaging" column="packaging" jdbcType="INTEGER" javaType="int"/>
+<result property="yield" column="yield" jdbcType="VARCHAR" javaType="string"/>
+</resultMap>
+
+<select id="findLine" parameterType="Integer" resultType="java.util.Map">
+select line_id,line_name from `production_line` where dept_number=#{dept_number}
+</select>
+
+<select id="findWorkOrders" parameterType="com.aten.entity.WorkOrders" resultMap="ordersMap">
+	SELECT * FROM (
+	SELECT A.*,ROWNUM RN FROM(
+	SELECT
+	E.LINEID,S.MOID,S.PRODUCTID,S.MOQUANTITY,D.MINDATE,D.MAXDATE,E.PROCESSID
+	FROM
+	(SELECT MOID,PRODUCTID,MOQUANTITY FROM SFS.MOMASTER WHERE COMPANYID='02')S
+	INNER JOIN
+	(
+	SELECT G.MOID,MIN(G.STADATE) MINDATE,MAX(G.STADATE) MAXDATE FROM
+	SFS.DSMS_LINESTATUS G WHERE PROCESSID IN('6','8','9') GROUP BY G.MOID
+	)D
+	ON D.MOID=S.MOID
+	INNER JOIN
+	(SELECT MOID,LINEID,PROCESSID FROM SFS.DSMS_LINESTATUS WHERE COMPANYID ='02')
+	E
+	ON D.MOID=E.MOID ORDER BY MAXDATE DESC
+	)A
+	) WHERE RN&gt;=1 AND RN&lt;=20
+</select>
+<resultMap type="com.aten.entity.WorkOrders" id="ordersMap">
+<result property="lineId" column="LINEID" jdbcType="VARCHAR" javaType="string"/>
+<result property="moId" column="MOID" jdbcType="VARCHAR" javaType="string"/>
+<result property="productId" column="PRODUCTID" jdbcType="VARCHAR" javaType="string"/>
+<result property="startDate" column="MINDATE" jdbcType="VARCHAR" javaType="string"/>
+<result property="endDate" column="MAXDATE" jdbcType="VARCHAR" javaType="string"/>
+<result property="moQuantity" column="MOQUANTITY" jdbcType="INTEGER" javaType="int"/>
+</resultMap>
+	
+<select id="findLineStatus" parameterType="string" resultMap="lineStatusMap">
+	SELECT C.*,ROWNUM RN FROM(
+	SELECT G.MOID,MIN(G.STADATE) MINDATE,MAX(G.STADATE) MAXDATE,
+	NVL((SELECT SUM(QUANTITY) FROM SFS.DSMS_LINESTATUS F WHERE PROCESSID ='6' AND
+	F.MOID=G.MOID GROUP BY PROCESSID),'0')ASSY,
+	NVL((SELECT SUM(QUANTITY) FROM SFS.DSMS_LINESTATUS F WHERE PROCESSID ='8' AND
+	F.MOID=G.MOID GROUP BY PROCESSID),'0')TEST01,
+	NVL((SELECT SUM(QUANTITY) FROM SFS.DSMS_LINESTATUS F WHERE PROCESSID ='9' AND
+	F.MOID=G.MOID GROUP BY PROCESSID),'0')PACK
+	FROM SFS.DSMS_LINESTATUS G WHERE G.MOID=#{moId} AND PROCESSID
+	IN('6','8','9') GROUP BY G.MOID
+	)C
+</select>
+<resultMap type="java.util.Map" id="lineStatusMap">
+<result property="assy" column="ASSY" jdbcType="INTEGER" javaType="int"/>
+<result property="test" column="TEST01" jdbcType="INTEGER" javaType="int"/>
+<result property="pack" column="PACK" jdbcType="INTEGER" javaType="int"/>
+</resultMap>
+
+<select id="findRepairStatus" parameterType="string" resultMap="repairStatusMap">
+	SELECT K.MOID, <!-- 某一工單號碼 -->
+	(SELECT COUNT(*) FROM SFS.SENDMASTER S INNER JOIN SFS.REPAIRMASTER D ON
+	S.SENDID=D.SENDID WHERE S.MOID=K.MOID AND D.COMPANYID='02' AND
+	D.CONFIRM='Y')ALREADYREPAIR,<!-- 某一工單已維修數量 -->
+	(SELECT COUNT(*) FROM SFS.SENDMASTER S INNER JOIN SFS.REPAIRMASTER D ON
+	S.SENDID=D.SENDID WHERE S.MOID=K.MOID AND D.COMPANYID='02')REPAIRTOTAL<!-- 某一工單維修總數量 -->
+	FROM (
+	SELECT S.MOID FROM SFS.SENDMASTER S INNER JOIN SFS.REPAIRMASTER D ON
+	S.SENDID=D.SENDID WHERE D.COMPANYID='02' AND S.MOID=#{moId}<!-- 計算出跟維修有關的工單 -->
+	)K GROUP BY K.MOID<!-- 以工單編號進行分組 -->
+</select>
+<resultMap type="java.util.Map" id="repairStatusMap">
+<result property="alreadyRepair" column="ALREADYREPAIR" jdbcType="INTEGER" javaType="int"/>
+<result property="repairTotal" column="REPAIRTOTAL" jdbcType="INTEGER" javaType="int"/>
+</resultMap>
+</mapper>

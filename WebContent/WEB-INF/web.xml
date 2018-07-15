@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+  <display-name>Watch</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+  </welcome-file-list>
+  <!--配置DispatcherServlet前端控制器  -->
+  <servlet>
+  <servlet-name>springmvc</servlet-name>
+  <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+  <!--配置初始化參數  -->
+  <init-param>
+  <param-name>contextConfigLocation</param-name>
+  <param-value>classpath:applicationContext.xml</param-value>
+  </init-param>
+  </servlet>
+  <servlet-mapping>
+  <servlet-name>springmvc</servlet-name>
+  <url-pattern>*.do</url-pattern>
+  </servlet-mapping>
+  <!--使用Spring Filter過濾器解決中文亂碼問題  -->
+  <filter>
+  <filter-name>encodingFilter</filter-name>
+  <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+  <!--過濾器初始化參數  -->
+  <init-param>
+  <param-name>encoding</param-name>
+  <param-value>UTF-8</param-value>
+  </init-param>
+  </filter>
+  <filter-mapping>
+  <filter-name>encodingFilter</filter-name>
+  <url-pattern>*.do</url-pattern>
+  </filter-mapping>
+  <!--配置RequestContextListener監聽器，用於監聽HTTP請求事件  -->
+  <listener>
+  <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
+  </listener>
+  <!--錯誤代碼、异常处理页面  -->
+  <error-page>
+  <error-code>404</error-code>
+  <location>/WEB-INF/main/error.jsp</location>
+  </error-page>
+  <error-page>
+  <error-code>405</error-code>
+  <location>/WEB-INF/main/error.jsp</location>
+  </error-page>
+  <error-page>
+  <error-code>500</error-code>
+  <location>/WEB-INF/main/error.jsp</location>
+  </error-page>
+</web-app>
